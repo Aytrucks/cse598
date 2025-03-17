@@ -5,36 +5,14 @@ import matplotlib.pyplot as plt
 #Helper functions
 #Use a tuple represent the sign variable and the 4 base10 integers as genes
 def create_individual():
-    sign = random.choice([-1, 1])
-    if sign == -1:
-        gene_1 = random.randint(0, 4)
-    else:
-        gene_1 = random.randint(0, 9)
-    #print(sign, gene_1, random.randint(0,9), random.randint(0,9), random.randint(0,9))
-    #print(sign, gene_1, random.randint(0,9), random.randint(0,9), random.randint(0,9))
-    return (sign, gene_1, random.randint(0,9), random.randint(0,9), random.randint(0,9))
+    return random.uniform(0,1)
 
-def create_individual_MUTATE():
-    return random.uniform(-0.5, 1)
-
-#translate the tuple into actual value x for fitness function
-def decode(individual):
-    sign, gene_1, gene_2, gene_3, gene_4 = individual
-    #print(sign, gene_1, gene_2, gene_3, gene_4)
-    #print("DECODED", sign * (gene_1 * 0.1 + gene_2 * 0.01 + gene_3 * 0.001 + gene_4 * 0.0001))
-    return sign * (gene_1 * 0.1 + gene_2 * 0.01 + gene_3 * 0.001 + gene_4 * 0.0001)
 
 
 #fitness function
 def fitness(x):
-    return x * math.sin(10 * math.pi * x) + 1
-
-#ensure that after mutation or crossover that individual's genotype still adheres to x parameters
-def repair(individual):
-    sign, gene_1, gene_2, gene_3, gene_4 = individual
-    if sign == -1 and gene_1 > 5:
-        gene_1 = random.randint(0, 4)
-    return (sign, gene_1, gene_2, gene_3, gene_4)
+    #return math.pow(math.sin(5 * math.pi * x), 6)
+    return math.exp(-2 * math.log(2) * ((x - 0.01) / 0.8) ** 2) * math.sin(5 * math.pi * ((x ** 0.75) - 0.05)) ** 6
 
 #uses both parents as templates for gene crossover, probabilty determined manually
 #randomly determinses the single point where cross over occurs (cp), c1 and c2 represents 2 children
@@ -43,37 +21,26 @@ def crossover(p1, p2, crossover_prob):
     local_prob = random.random()
     #print(local_prob)
     if local_prob < crossover_prob:
-        cp = random.randint(1, 4)
-        c1 = p1[:cp] + p2[cp:]
-        c2 = p2[:cp] + p1[cp:]
-        return (repair(c1), repair(c2))
+        alpha = random.random()
+        c1 = (alpha) * p1 + (1 - alpha) * p2
+        c2 = (1 - alpha) * p1 + (alpha) * p2
+        return (c1,c2)
     return (p1, p2)
 
 #simulates random change in all genes including sign var
 def mutate(ind, mutation_prob):
-    #print(ind)
-    sign, gene_1, gene_2, gene_3, gene_4 = ind
-    #print("BEFORE", ind)
-    if random.random() < mutation_prob:
-        sign = -sign
-    if sign == -1 and gene_1 > 5:
-        gene_1 = random.randint(0, 5)
-    for i in range(1, 5):
-        if random.random() < mutation_prob:
-            val = random.randint(0, 9)
-            if i == 1 and sign == -1:
-                val = random.randint(0, 5)
-            ind = list(ind)
-            ind[i] = val
-    repaired_ind = repair(ind)
-    #print("AFTER", repaired_ind)
-    return repaired_ind
+
+    if(random.random() < mutation_prob):
+        mutation = random.uniform(-0.025, 0.025)
+        ind += mutation
+        
+        return max(0, min(1, ind))
+    return ind
 
 
 #selects random sample of 2 individuals and takes the best fit one
 def tournament_selection(population, fitnesses):
-    k = [1] * 85 + [2] * 15
-    k = random.choice(k)
+    k = 3
     #print(k)
     selected_indices = random.sample(range(len(population)), k)
     
@@ -106,17 +73,18 @@ if __name__ == "__main__":
     # main genetic algo loop
     for gen in range(generations):
         print(gen)
-        decoded = [decode(ind) for ind in population]
+        #decoded = [decode(ind) for ind in population]
         #print("ENTIRE DECODED GEN", decoded)
-        fits = [fitness(x) for x in decoded]
+        fits = [fitness(x) for x in population]
         best_idx = fits.index(max(fits))
         best_ind = population[best_idx]
+        print(best_ind)
         
         #record stats
         best_fitnesses.append(max(fits))
         avg_fitnesses.append(sum(fits)/pop_size)
         worst_fitnesses.append(min(fits))
-        best_individuals.append(decode(best_ind))
+        best_individuals.append((best_ind))
         
         #select parents and rproduction
         offspring = [] 
@@ -131,9 +99,9 @@ if __name__ == "__main__":
             offspring.append(c1)
             offspring.append(c2)
       
-        population = offspring[:pop_size] 
-        mutation_prob = mutation_prob - 0.008 * random.random()
-        print(mutation_prob)
+        population = offspring[:pop_size]
+        mutation_prob = mutation_prob - 0.0008 * random.random()
+        #print("mut", mutation_prob)
 
     #Plotting
     plt.figure(figsize=(10,5))
@@ -157,7 +125,7 @@ if __name__ == "__main__":
     plt.ylabel('x Value')
     plt.show()
 
-    x = [i/1000 for i in range(-600, 1001)]
+    x = [i/1000 for i in range(0, 1001)]
     y = [fitness(xi) for xi in x]
     plt.figure(figsize=(10,5))
     plt.plot(x, y, label='f(x)')
